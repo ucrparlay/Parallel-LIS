@@ -1,8 +1,5 @@
 # Logn-LIS
 
-## Compile
-ParlayLib is required if you want to compile
-
 ## Usage
 Type 0: Sequential LIS algorithm based on AVL
 
