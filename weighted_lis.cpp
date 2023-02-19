@@ -34,7 +34,8 @@ using data_type = unsigned long long;
 #include "basic_tools.h"
 
 size_t ARRAY_SIZE = 1e9;
-constexpr size_t WEIGHT_LIMIT = 10;
+size_t WEIGHT_LIMIT = 10;
+constexpr size_t SIZE_LIMIT = 4294967295;
 constexpr data_type LOWER_LIMIT = 0;
 constexpr data_type UPPER_LIMIT = 1e9;
 constexpr size_t GRANULARITY = 1024;
@@ -75,7 +76,6 @@ inline nid_t gen_nid2(uint32_t x, uint32_t y){
 
 long *f = new long[ARRAY_SIZE];
 auto * a = new nid_t[ARRAY_SIZE];
-parlay::sequence<pair<size_t,size_t>> indexReal(ARRAY_SIZE);
 
 
 template<typename E>
@@ -255,6 +255,7 @@ size_t calWeight(sequence<data_type> &initialArray, sequence<size_t> &weightArra
   t_prepare.start();
   auto * workset = new size_t[rounds+1];
   
+  parlay::sequence<pair<size_t,size_t>> indexReal(size);
   par_for(size_t i=0; i<size; ++i){
     f[i] = 0;
     a[i] = gen_nid2(i, (uint32_t)initialArray[i]);
@@ -307,7 +308,7 @@ size_t calWeight(sequence<data_type> &initialArray, sequence<size_t> &weightArra
   }
   t_queryLeft.start();
   const auto ans = q.query_left(size,[&,size](const auto &inner){
-      const auto r = inner.query_left(gen_nid(size,size));
+      const auto r = inner.query_left(gen_nid(SIZE_LIMIT,SIZE_LIMIT));
       return r;
     },
     [](const auto &l, const auto &r){
