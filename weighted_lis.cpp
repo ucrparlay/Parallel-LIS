@@ -27,6 +27,7 @@
 #include "get_time.h"
 #include "std.hpp"
 #include "interval_array.hpp"
+#include "init_seq.cpp"
 
 using namespace std;
 using data_type1 = uint64_t;
@@ -34,7 +35,7 @@ using data_type = unsigned long long;
 #include "basic_tools.h"
 
 size_t ARRAY_SIZE = 1e9;
-size_t WEIGHT_LIMIT = 10;
+float WEIGHT_LIMIT = 10;
 size_t ARRAY_LIMIT = 10;
 constexpr size_t SIZE_LIMIT = 4294967295;
 constexpr data_type LOWER_LIMIT = 0;
@@ -162,13 +163,6 @@ size_t buildTree(sequence<data_type> &arr, sequence<data_type> &arr2, size_t siz
     arr[i]=0;
   }
   return depth;
-}
-
-int initializeRandomWeight(sequence<size_t> &arr, size_t size, size_t limit, size_t seed = 0.01){
-  parlay::parallel_for(0, size, [&](size_t i){
-    arr[i]=hash64(i+seed*size)%limit;
-  });
-  return 0;
 }
 
 data_type buildMinTreeSeq(sequence<data_type> &nodeArray, size_t root, size_t secondLastEnd){
@@ -461,37 +455,37 @@ int runUnweightedSequential(sequence<data_type> nodeArray, size_t depth){
   return rounds;
 }
 
-int run_final(int ROUND, sequence<data_type> &initialArray, size_t weightrange, size_t size, size_t gra = DEPTH_GRANULARITY, bool weighted = true, bool seq = false){
-  if(weighted){
-      sequence<size_t> weightArray(size);
-      initializeRandomWeight(weightArray, size, weightrange, 0.001);
-      if(seq){
-        t_seq.reset();
-        t_seq.start();
-        int ans1 = runWeightedSequential(initialArray, weightArray, size);
-        t_seq.stop();
-        cout<<ans1<<"\t"<<t_seq.get_total()<<endl;
-      }else{
-        size_t ans = runWeightedParallel(initialArray, weightArray, size, gra);
-        t_buildTree.reset();
-        t_findPivot.reset();
-        t_handleWeight.reset();
-        t_prepare.reset();
-        t_queryLeft.reset();
-        t_update.reset();
-        t_para.reset();
-        t_para.start();
-        for(int i=0;i<ROUND;++i){
-          runWeightedParallel(initialArray, weightArray, size, gra);
-        }
-        t_para.stop();
-        cout<< ans <<"\t"<<t_para.get_total()/ROUND;
-        cout<<"\t"<<t_findPivot.get_total()/ROUND<<"\t"<<t_handleWeight.get_total()/ROUND;
-        cout<<"\t"<<t_prepare.get_total()/ROUND<<"\t"<<t_queryLeft.get_total()/ROUND<<"\t"<<t_update.get_total()/ROUND;
-        cout<<endl;
-      }
-      return 0;
+int run_final_weighted(int ROUND, sequence<data_type> &initialArray, sequence<size_t> &weightArray, size_t size, size_t gra = DEPTH_GRANULARITY, bool seq = false){
+  if(seq){
+    t_seq.reset();
+    t_seq.start();
+    int ans1 = runWeightedSequential(initialArray, weightArray, size);
+    t_seq.stop();
+    cout<<"ans\ttime"<<endl;
+    cout<<ans1<<"\t"<<t_seq.get_total()<<endl;
+  }else{
+    size_t ans = runWeightedParallel(initialArray, weightArray, size, gra);
+    t_buildTree.reset();
+    t_findPivot.reset();
+    t_handleWeight.reset();
+    t_prepare.reset();
+    t_queryLeft.reset();
+    t_update.reset();
+    t_para.reset();
+    t_para.start();
+    for(int i=0;i<ROUND;++i){
+      runWeightedParallel(initialArray, weightArray, size, gra);
+    }
+    t_para.stop();
+    cout<< ans <<"\t"<<t_para.get_total()/ROUND;
+    cout<<"\t"<<t_findPivot.get_total()/ROUND<<"\t"<<t_handleWeight.get_total()/ROUND;
+    cout<<"\t"<<t_prepare.get_total()/ROUND<<"\t"<<t_queryLeft.get_total()/ROUND<<"\t"<<t_update.get_total()/ROUND;
+    cout<<endl;
   }
+  return 0;
+}
+
+int run_final_unweighted(int ROUND, sequence<data_type> &initialArray, size_t size, size_t gra = DEPTH_GRANULARITY, bool seq = false){
   sequence<data_type> nodeArray;
   size_t depth = buildTree(nodeArray, initialArray, size);
   if(seq){
@@ -522,27 +516,35 @@ int run_final(int ROUND, sequence<data_type> &initialArray, size_t weightrange, 
   }
   return 0;
 }
-
 int main(int argc, char* argv[]){
-  constexpr int ROUND = 3;
+  int ROUND = 3;
   if (argc == 1) {
     fprintf(
         stderr,
-        "Usage: %s [-i input_file] [-a array_size] [-e weight_limit] [-u array_limit] [-w] [-s]\n"
+        "Usage: %s [-i input_file] [-a array_size] [-u array_limit] [-e weight_limit] [-r test_round] [-g generated_input] [-w] [-s]\n"
         "Options:\n"
-        "\t-s,\trun in sequential\n"
-        "\t-w,\tweighted LIS\n",
+        "\t-i,\talready have generated input file, please type in file name\n"
+        "\t-a,\tsize of input array\n"
+        "\t-u,\tneed to generate array, please set array limit\n"
+        "\t-e,\tneed to generate weight, please set weight limit\n"
+        "\t-r,\tnumebr of test round\n"
+        "\t-g,\tneed to output generated input, please type in file name\n"
+        "\t-w,\tweighted LIS\n"
+        "\t-s,\trun in sequential\n",
         argv[0]);
     return 0;
   }
   
   int type;
   ifstream infile;
+  string ofs;
+  
+  bool gval1=false,gval2=false;
+  bool gval3=false;
   bool weighted=false, seq=false;
   
   char c;
-  //while ((c = getopt(argc, argv, "i:a:wl:al:ws")) != -1) {
-  while ((c = getopt(argc, argv, "i:a:e:u:ws")) != -1) {
+  while ((c = getopt(argc, argv, "i:a:u:e:r:g:ws")) != -1) {
     switch (c) {
       case 'i':
         infile.open(optarg, ifstream::in);
@@ -554,11 +556,21 @@ int main(int argc, char* argv[]){
       case 'a':
         ARRAY_SIZE = atoi(optarg);
         break;
-      case 'e':
-        WEIGHT_LIMIT = atoi(optarg);
-        break;
       case 'u':
+        gval1 = true;
         ARRAY_LIMIT = atoi(optarg);
+        break;
+      case 'e':
+        gval2 = true;
+        WEIGHT_LIMIT = atof(optarg);
+        break;
+      case 'r':
+        ROUND = atoi(optarg);
+        break;
+      case 'g':
+        gval3 = true;
+        ofs = optarg;
+        ofs = "in\\"+ofs;
         break;
       case 'w':
         weighted = true;
@@ -574,10 +586,32 @@ int main(int argc, char* argv[]){
 
   pbbs::type_allocator<interval<nid_t, U_outer, allocator_wrapper>::treap_node>::reserve(ARRAY_SIZE);
   sequence<data_type> initialArray(ARRAY_SIZE);
-  
-  for(size_t i=0; i<ARRAY_SIZE; ++i){
-    infile>>initialArray[i];
+  if(gval1){
+    initializeRandomArray(initialArray, ARRAY_SIZE, ARRAY_LIMIT, 0.001);
+  }else{
+    for(size_t i=0; i<ARRAY_SIZE; ++i)
+      infile>>initialArray[i];
   }
-  run_final(ROUND, initialArray, WEIGHT_LIMIT, ARRAY_SIZE, DEPTH_GRANULARITY, weighted, seq);
+  if(weighted){
+    sequence<size_t> weightArray(ARRAY_SIZE);
+    if(gval2){
+      initializeRandomWeight(weightArray, ARRAY_SIZE, WEIGHT_LIMIT, 0.001);
+    }else{
+      for(size_t i=0; i<ARRAY_SIZE; ++i)
+        infile>>weightArray[i];
+    }
+    run_final_weighted(ROUND, initialArray, weightArray, ARRAY_SIZE, DEPTH_GRANULARITY, seq);
+    if(gval3){
+      ofstream myfile(ofs, std::ofstream::out);
+      if(gval1)for(int i=0;i<ARRAY_SIZE;++i)myfile<<initialArray[i]<<"\n";
+      if(gval2)for(int i=0;i<ARRAY_SIZE;++i)myfile<<weightArray[i]<<"\n";
+    }
+    return 0;
+  }
+  if(gval3){
+    ofstream myfile(ofs, std::ofstream::out);
+    if(gval1)for(int i=0;i<ARRAY_SIZE;++i)myfile<<initialArray[i]<<"\n";
+  }
+  run_final_unweighted(ROUND, initialArray, ARRAY_SIZE, DEPTH_GRANULARITY, seq);
   return 0;
 }
