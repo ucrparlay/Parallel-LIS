@@ -35,6 +35,7 @@ using data_type = unsigned long long;
 
 size_t ARRAY_SIZE = 1e9;
 size_t WEIGHT_LIMIT = 10;
+size_t ARRAY_LIMIT = 10;
 constexpr size_t SIZE_LIMIT = 4294967295;
 constexpr data_type LOWER_LIMIT = 0;
 constexpr data_type UPPER_LIMIT = 1e9;
@@ -460,60 +461,53 @@ int runUnweightedSequential(sequence<data_type> nodeArray, size_t depth){
   return rounds;
 }
 
-int run_final(int ROUND, sequence<data_type> &initialArray, size_t range2, size_t size, size_t gra = DEPTH_GRANULARITY, bool weighted = true, bool seq = false){
-  sequence<size_t> weightArray(size);
-  if(seq){
-    if(weighted){
-      initializeRandomWeight(weightArray, size, range2, 0.001);
-      t_seq.reset();
-      t_seq.start();
-      int ans1 = runWeightedSequential(initialArray, weightArray, size);
-      t_seq.stop();
-      cout<<ans1<<"\t"<<t_seq.get_total()<<endl;
-      return 0;
-    }else{
-      sequence<data_type> nodeArray;
-      size_t depth = buildTree(nodeArray, initialArray, size);
-      //array
-      t_seq0.reset();
-      t_seq0.start();
-      int ans0 = runUnweightedSequential0(nodeArray, depth, size);
-      t_seq0.stop();
-      //work
-      t_seq.reset();
-      t_seq.start();
-      int ans2 = runUnweightedSequential(nodeArray, depth);
-      t_seq.stop();
-      
-      cout<< ans0 <<"\t"<<t_seq0.get_total()<<endl;
-      cout<< ans2 <<"\t"<<t_seq.get_total()<<endl;
-      return 0;
-    }
-  }
+int run_final(int ROUND, sequence<data_type> &initialArray, size_t weightrange, size_t size, size_t gra = DEPTH_GRANULARITY, bool weighted = true, bool seq = false){
   if(weighted){
-    initializeRandomWeight(weightArray, size, range2, 0.001);
-    size_t ans = runWeightedParallel(initialArray, weightArray, size, gra);
-    t_buildTree.reset();
-    t_findPivot.reset();
-    t_handleWeight.reset();
-    t_prepare.reset();
-    t_queryLeft.reset();
-    t_update.reset();
-    t_para.reset();
-    t_para.start();
-    for(int i=0;i<ROUND;++i){
-      runWeightedParallel(initialArray, weightArray, size, gra);
-    }
-    t_para.stop();
-    cout<< ans <<"\t"<<t_para.get_total()/ROUND;
-    cout<<"\t"<<t_findPivot.get_total()/ROUND<<"\t"<<t_handleWeight.get_total()/ROUND;
-    cout<<"\t"<<t_prepare.get_total()/ROUND<<"\t"<<t_queryLeft.get_total()/ROUND<<"\t"<<t_update.get_total()/ROUND;
-    cout<<endl;
-    return 0;
+      sequence<size_t> weightArray(size);
+      initializeRandomWeight(weightArray, size, weightrange, 0.001);
+      if(seq){
+        t_seq.reset();
+        t_seq.start();
+        int ans1 = runWeightedSequential(initialArray, weightArray, size);
+        t_seq.stop();
+        cout<<ans1<<"\t"<<t_seq.get_total()<<endl;
+      }else{
+        size_t ans = runWeightedParallel(initialArray, weightArray, size, gra);
+        t_buildTree.reset();
+        t_findPivot.reset();
+        t_handleWeight.reset();
+        t_prepare.reset();
+        t_queryLeft.reset();
+        t_update.reset();
+        t_para.reset();
+        t_para.start();
+        for(int i=0;i<ROUND;++i){
+          runWeightedParallel(initialArray, weightArray, size, gra);
+        }
+        t_para.stop();
+        cout<< ans <<"\t"<<t_para.get_total()/ROUND;
+        cout<<"\t"<<t_findPivot.get_total()/ROUND<<"\t"<<t_handleWeight.get_total()/ROUND;
+        cout<<"\t"<<t_prepare.get_total()/ROUND<<"\t"<<t_queryLeft.get_total()/ROUND<<"\t"<<t_update.get_total()/ROUND;
+        cout<<endl;
+      }
+      return 0;
+  }
+  sequence<data_type> nodeArray;
+  size_t depth = buildTree(nodeArray, initialArray, size);
+  if(seq){
+    //array
+    t_seq0.reset();
+    t_seq0.start();
+    int ans0 = runUnweightedSequential0(nodeArray, depth, size);
+    t_seq0.stop();
+    //work
+    t_seq.reset();
+    t_seq.start();
+    int ans2 = runUnweightedSequential(nodeArray, depth);
+    t_seq.stop();
+    cout<< ans0 <<"\t"<<t_seq0.get_total()<<endl;
+    cout<< ans2 <<"\t"<<t_seq.get_total()<<endl;
   }else{
-    
-    sequence<data_type> nodeArray;
-    size_t depth = buildTree(nodeArray, initialArray, size);
     size_t ans = runParallelUnweighted(nodeArray, depth, size, gra);
     t_buildTree.reset();
     t_findPivot.reset();
@@ -529,45 +523,61 @@ int run_final(int ROUND, sequence<data_type> &initialArray, size_t range2, size_
   return 0;
 }
 
-int main(int argc, char** argv){
+int main(int argc, char* argv[]){
   constexpr int ROUND = 3;
-  pbbs::type_allocator<interval<nid_t, U_outer, allocator_wrapper>::treap_node>::reserve(ARRAY_SIZE);
-  if(argc<3){
-    cout<<"Not Enough Parameters"<<endl;
+  if (argc == 1) {
+    fprintf(
+        stderr,
+        "Usage: %s [-i input_file] [-a array_size] [-e weight_limit] [-u array_limit] [-w] [-s]\n"
+        "Options:\n"
+        "\t-s,\trun in sequential\n"
+        "\t-w,\tweighted LIS\n",
+        argv[0]);
     return 0;
   }
-  ARRAY_SIZE = atoi(argv[1]);
-  int type = atoi(argv[2]);
+  
+  int type;
   ifstream infile;
-  infile.open(argv[3], ifstream::in);
-  if(!infile.is_open()){
-    cout<<"No Input File"<<endl;
-    return 0;
+  bool weighted=false, seq=false;
+  
+  char c;
+  //while ((c = getopt(argc, argv, "i:a:wl:al:ws")) != -1) {
+  while ((c = getopt(argc, argv, "i:a:e:u:ws")) != -1) {
+    switch (c) {
+      case 'i':
+        infile.open(optarg, ifstream::in);
+        if(!infile.is_open()){
+          cout<<"No Input File"<<endl;
+          return 0;
+        }
+        break;
+      case 'a':
+        ARRAY_SIZE = atoi(optarg);
+        break;
+      case 'e':
+        WEIGHT_LIMIT = atoi(optarg);
+        break;
+      case 'u':
+        ARRAY_LIMIT = atoi(optarg);
+        break;
+      case 'w':
+        weighted = true;
+        break;
+      case 's':
+        seq = true;
+        break;
+      default:
+        fprintf(stderr, "Error: Unknown option %c\n", optopt);
+        return 0;
+    }
   }
+
+  pbbs::type_allocator<interval<nid_t, U_outer, allocator_wrapper>::treap_node>::reserve(ARRAY_SIZE);
   sequence<data_type> initialArray(ARRAY_SIZE);
   
   for(size_t i=0; i<ARRAY_SIZE; ++i){
     infile>>initialArray[i];
   }
-  if(type==0){
-    run_final(ROUND, initialArray, WEIGHT_LIMIT, ARRAY_SIZE, DEPTH_GRANULARITY, true, true);
-    return 0;
-    
-  }
-  if(type==1){
-    run_final(ROUND, initialArray, WEIGHT_LIMIT, ARRAY_SIZE, DEPTH_GRANULARITY, true, false);
-    return 0;
-    
-  }
-  if(type==2){
-    run_final(ROUND, initialArray, WEIGHT_LIMIT, ARRAY_SIZE, DEPTH_GRANULARITY, false, true);
-    return 0;
-    
-  }
-  if(type==3){
-    run_final(ROUND, initialArray, WEIGHT_LIMIT, ARRAY_SIZE, DEPTH_GRANULARITY, false, false);
-    return 0;
-    
-  }
+  run_final(ROUND, initialArray, WEIGHT_LIMIT, ARRAY_SIZE, DEPTH_GRANULARITY, weighted, seq);
   return 0;
 }
