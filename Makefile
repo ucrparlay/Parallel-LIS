@@ -1,5 +1,5 @@
 CC = g++
-CFLAGS = -O3 -g3 -mcx16 -march=native -std=c++17 -ggdb -DPARLAY_CILKPLUS -fcilkplus -DCILK -I/home/csmajs/zwan018/.parlaylib/usr/local/include -I/home/csmajs/zwan018/pbbslib -I/home/zwan018/pbbslib -Wall -Wextra
+CFLAGS = -O3 -g3 -mcx16 -march=native -std=c++17 -ggdb -DPARLAY_CILKPLUS -fcilkplus -DCILK -Wall -Wextra -I.parlaylib/usr/local/include -Ipbbslib
 
 all:	weighted_lis 
 
