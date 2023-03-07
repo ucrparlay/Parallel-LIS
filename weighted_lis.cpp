@@ -460,7 +460,7 @@ int run_final_weighted(int ROUND, sequence<data_type> &initialArray, sequence<si
     t_seq.start();
     int ans1 = runWeightedSequential(initialArray, weightArray, size);
     t_seq.stop();
-    cout<<"ans\ttime"<<endl;
+    //cout<<"ans\ttime"<<endl;
     cout<<ans1<<"\t"<<t_seq.get_total()<<endl;
   }else{
     size_t ans = runWeightedParallel(initialArray, weightArray, size, gra);
@@ -476,7 +476,7 @@ int run_final_weighted(int ROUND, sequence<data_type> &initialArray, sequence<si
       runWeightedParallel(initialArray, weightArray, size, gra);
     }
     t_para.stop();
-    cout<<"ans\ttotal_time\tfind_pivot\thandle_weight\tprepare\t\tquery_left\tupdate"<<endl;
+    //cout<<"ans\ttotal_time\tfind_pivot\thandle_weight\tprepare\t\tquery_left\tupdate"<<endl;
     cout<< ans <<"\t"<<t_para.get_total()/ROUND;
     cout<<"\t"<<t_findPivot.get_total()/ROUND<<"\t"<<t_handleWeight.get_total()/ROUND;
     cout<<"\t"<<t_prepare.get_total()/ROUND<<"\t"<<t_queryLeft.get_total()/ROUND<<"\t"<<t_update.get_total()/ROUND;
@@ -499,8 +499,9 @@ int run_final_unweighted(int ROUND, sequence<data_type> &initialArray, size_t si
     t_seq.start();
     int ans2 = runUnweightedSequential(nodeArray, depth);
     t_seq.stop();
-    cout<<"greedy\t"<< ans0 <<"\t"<<t_seq0.get_total()<<endl;
-    cout<<"seq\t"<< ans2 <<"\t"<<t_seq.get_total()<<endl;
+    //cout<<"greedy\t"<< ans0 <<"\t"<<t_seq0.get_total()<<endl;
+    //cout<<"seq\t"<< ans2 <<"\t"<<t_seq.get_total()<<endl;
+    cout<< ans0 <<"\t"<<t_seq0.get_total()<<"\t"<<t_seq.get_total()<<endl;
   }else{
     size_t ans = runParallelUnweighted(nodeArray, depth, size, gra);
     t_buildTree.reset();
@@ -511,7 +512,7 @@ int run_final_unweighted(int ROUND, sequence<data_type> &initialArray, size_t si
       runParallelUnweighted(nodeArray, depth, size, gra);
     }
     t_para.stop();
-    cout<<"ans\ttotal_time\tfind_pivot\tbuild_tree"<<endl;
+    //cout<<"ans\ttotal_time\tfind_pivot\tbuild_tree"<<endl;
     cout<< ans <<"\t"<<t_para.get_total()/ROUND<<"\t"<<t_findPivot.get_total()/ROUND<<"\t"<<t_buildTree.get_total()/ROUND;
     cout<<endl;
   }
