@@ -1,5 +1,8 @@
 # Logn-LIS
 
+## Prerequisites 
+* g++ &gt;= 7 with support for Cilk Plus and C++17 (It is tested with g++ 7.5.0) 
+
 ## Usage
 We implemented all algorithms in C++ using [ParlayLib](https://github.com/cmuparlay/parlaylib.git) and [PbbsLib](https://github.com/cmuparlay/pbbslib.git) for fork-join parallelism and some parallel primitives. 
 1. Clone the project and its dependencies
