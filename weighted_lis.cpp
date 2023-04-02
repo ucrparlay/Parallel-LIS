@@ -43,7 +43,7 @@ constexpr data_type UPPER_LIMIT = 1e9;
 constexpr size_t GRANULARITY = 1024;
 constexpr size_t DEPTH_GRANULARITY = 16;//1e9-19
 constexpr size_t BATCH_SIZE = 1e4;
-enum Pattern { rando = 0, line, segment };
+enum Pattern { rando = 0, line, segment, pure };
 
 timer t_seq0;
 timer t_seq;
@@ -544,12 +544,13 @@ int main(int argc, char* argv[]){
   ifstream infile;
   string ofs;
   
-  bool gval1=false,gval2=false;
+  bool gval1=true,gval2=false;
   bool gval3=false;
   bool weighted=false, seq=false;
   Pattern pat = rando;
+  size_t offset=10;
   char c;
-  while ((c = getopt(argc, argv, "i:a:u:e:r:a:l:g:p:ws")) != -1) {
+  while ((c = getopt(argc, argv, "i:a:u:e:r:a:l:g:p:o:ws")) != -1) {
     switch (c) {
       case 'i':
         infile.open(optarg, ifstream::in);
@@ -578,7 +579,6 @@ int main(int argc, char* argv[]){
       case 'g':
         gval3 = true;
         ofs = optarg;
-        ofs = "in/"+ofs;
         break;
       case 'w':
         weighted = true;
@@ -586,13 +586,19 @@ int main(int argc, char* argv[]){
       case 's':
         seq = true;
         break;
+      case 'o':
+        offset = atoi(optarg);
+        break;
       case 'p':
+        gval1 = true;
         if (!strcmp(optarg, "line")) {
           pat = line;
         } else if (!strcmp(optarg, "segment")) {
           pat = segment;
         } else if (!strcmp(optarg, "random")) {
           pat = rando;
+        } if (!strcmp(optarg, "pure")) {
+          pat = pure;
         } else {
           fprintf(stderr, "Error: Unknown pattern %s\n", optarg);
           exit(EXIT_FAILURE);
@@ -609,7 +615,8 @@ int main(int argc, char* argv[]){
   if(gval1){
     if(pat == rando)initializeRandomArray(initialArray, ARRAY_SIZE, ARRAY_LIMIT, LIS_LENGTH, 0.001);
     if(pat == line)initializeLineArray(initialArray, ARRAY_SIZE, ARRAY_LIMIT, LIS_LENGTH, 0.001);
-    if(pat == segment)initializeSegmentArray(initialArray, ARRAY_SIZE, ARRAY_LIMIT, LIS_LENGTH, 0.001);
+    if(pat == segment)initializeSegmentArray(initialArray, ARRAY_SIZE, ARRAY_LIMIT, LIS_LENGTH, 0.001, offset);
+    if(pat == pure)initializePureRandomArray(initialArray, ARRAY_SIZE, ARRAY_LIMIT, LIS_LENGTH, 0.001);
   }else{
     for(size_t i=0; i<ARRAY_SIZE; ++i)
       infile>>initialArray[i];
