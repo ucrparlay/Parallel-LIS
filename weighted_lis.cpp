@@ -33,7 +33,7 @@ using data_type1 = uint64_t;
 using data_type = unsigned long long;
 #include "basic_tools.h"
 
-size_t ARRAY_SIZE = 1e9;
+size_t ARRAY_SIZE = 1000000000;
 float WEIGHT_LIMIT = 10;
 size_t ARRAY_LIMIT = 1e6;
 size_t LIS_LENGTH = 10;
@@ -544,7 +544,7 @@ int main(int argc, char* argv[]){
   ifstream infile;
   string ofs;
   
-  bool gval1=true,gval2=false;
+  bool gval1=false,gval2=false;
   bool gval3=false;
   bool weighted=false, seq=false;
   Pattern pat = rando;
@@ -597,7 +597,7 @@ int main(int argc, char* argv[]){
           pat = segment;
         } else if (!strcmp(optarg, "random")) {
           pat = rando;
-        } if (!strcmp(optarg, "pure")) {
+        } else if (!strcmp(optarg, "pure")) {
           pat = pure;
         } else {
           fprintf(stderr, "Error: Unknown pattern %s\n", optarg);
@@ -614,7 +614,7 @@ int main(int argc, char* argv[]){
   sequence<data_type> initialArray(ARRAY_SIZE);
   if(gval1){
     if(pat == rando)initializeRandomArray(initialArray, ARRAY_SIZE, ARRAY_LIMIT, LIS_LENGTH, 0.001);
-    if(pat == line)initializeLineArray(initialArray, ARRAY_SIZE, ARRAY_LIMIT, LIS_LENGTH, 0.001);
+    if(pat == line)initializeLineArray(initialArray, ARRAY_SIZE, ARRAY_LIMIT, LIS_LENGTH, 0.001, offset);
     if(pat == segment)initializeSegmentArray(initialArray, ARRAY_SIZE, ARRAY_LIMIT, LIS_LENGTH, 0.001, offset);
     if(pat == pure)initializePureRandomArray(initialArray, ARRAY_SIZE, ARRAY_LIMIT, LIS_LENGTH, 0.001);
   }else{
