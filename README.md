@@ -8,8 +8,8 @@ We implemented all algorithms in C++ using [ParlayLib](https://github.com/cmupar
 1. Clone the project and its dependencies
 
     ```
-    git clone --recurse-submodules git@github.com:ucrparlay/Logn-LIS.git
-    cd Logn-LIS/
+    git clone --recurse-submodules git@github.com:ucrparlay/Parallel-LIS.git
+    cd Parallel-LIS/
     ```
 2. Compile the code:
 
