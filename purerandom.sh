@@ -5,7 +5,7 @@ folder="result1"
 round="10"
 limit=1000000000
 sizes=("1000000" "10000000" "100000000" "1000000000")
-cores=("2" "4" "8" "16" "32"  "64" "128" "192"）
+cores=("2" "4" "8" "16" "32"  "64" "128" "192")
 
 echo "" > $folder/LIS_PureRandom.log
 for size in ${sizes[@]}; do
